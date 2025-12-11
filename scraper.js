@@ -14,16 +14,40 @@ let cachedMovies = [];
 let isFirstLoad = true;
 
 // IMMEDIATE LOAD: Try to load static DB synchronously on module load
+// IMMEDIATE LOAD: Hybrid Strategy (Require + FS)
+let loadStatus = { method: 'none', error: null, count: 0 };
+
 try {
-    console.log('📂 Module Load: Require static DB...');
+    // Attempt 1: Require (Bundled)
     const staticData = require('./movies.json');
     if (staticData && staticData.length > 0) {
-        console.log(`✅ Pre-loaded ${staticData.length} movies from static DB!`);
         cachedMovies = staticData;
-        isFirstLoad = false; // Skip initial scrape if we have data
+        isFirstLoad = false;
+        loadStatus = { method: 'require', error: null, count: cachedMovies.length };
     }
-} catch (e) {
-    console.log('Info: No static movies.json found (normal in dev/generation).');
+} catch (e1) {
+    loadStatus.error = 'Require failed: ' + e1.message;
+
+    // Attempt 2: FS Read (Runtime)
+    try {
+        const dbPath = path.join(__dirname, 'movies.json');
+        if (fs.existsSync(dbPath)) {
+            const fileData = fs.readFileSync(dbPath, 'utf8');
+            cachedMovies = JSON.parse(fileData);
+            isFirstLoad = false;
+            loadStatus = { method: 'fs', error: e1.message + ' | FS Success', count: cachedMovies.length };
+        } else {
+            loadStatus.error += ' | FS: File not found at ' + dbPath;
+        }
+    } catch (e2) {
+        loadStatus.error += ' | FS Failed: ' + e2.message;
+    }
+}
+
+if (loadStatus.count > 0) {
+    console.log(`✅ Loaded ${loadStatus.count} movies via ${loadStatus.method}`);
+} else {
+    console.warn('⚠️ Failed to load static DB:', loadStatus.error);
 }
 
 async function scrapeMovies(forceRefresh = false) {
@@ -502,7 +526,7 @@ module.exports = {
     scrapeMovies,
     scrapeMovieVideo,
     startBackgroundScrapes,
-    getCategorizedMovies: () => ({ 'All': cachedMovies }) // Helper
+    getCategorizedMovies: () => ({ 'All': cachedMovies, 'DebugStatus': loadStatus }) // Helper
 };
 
 // Auto-start logic removed to be controlled by server.js

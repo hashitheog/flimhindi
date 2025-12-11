@@ -106,6 +106,7 @@ app.get('/api/debug', (req, res) => {
         const scraper = require('./scraper');
         const cats = scraper.getCategorizedMovies();
         debugInfo.inMemoryMovieCount = cats && cats.All ? cats.All.length : 0;
+        debugInfo.loadStatus = cats ? cats.DebugStatus : 'unknown';
     } catch (e) { debugInfo.errorScraper = e.message; }
 
     try {
