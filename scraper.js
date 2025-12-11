@@ -18,15 +18,15 @@ async function scrapeMovies(forceRefresh = false) {
     if (!forceRefresh) {
         try {
             console.log('📂 Attempting to require static DB...');
-            // This forces the bundler (Webpack/Vercel) to include the file
-            const staticData = require('./public/movies.json');
+            // Load from ROOT to ensure Vercel bundles it as a dependency
+            const staticData = require('./movies.json');
             if (staticData && staticData.length > 0) {
                 console.log('✅ Loaded movies from static DB via require!');
                 cachedMovies = staticData;
                 return cachedMovies;
             }
         } catch (e) {
-            console.log('Static DB require failed (expected in dev if generating):', e.message);
+            console.log('Static DB require failed:', e.message);
 
             // Fallback to FS for local dev if require fails (sometimes happens with dynamic paths)
             try {

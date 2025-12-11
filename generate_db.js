@@ -20,7 +20,7 @@ async function generate() {
     const finalMovies = require('./scraper').getCategorizedMovies().All;
     console.log(`\n🎉 Generation Complete! Total Movies: ${finalMovies.length}`);
 
-    const outputPath = path.join(__dirname, 'public', 'movies.json');
+    const outputPath = path.join(__dirname, 'movies.json');
     fs.writeFileSync(outputPath, JSON.stringify(finalMovies, null, 2));
     console.log(`✅ Saved to ${outputPath}`);
 
