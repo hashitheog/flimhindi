@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shaleemo - Stream Movies</title>
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml"
+        href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%23667eea'/%3E%3Cstop offset='100%25' style='stop-color:%23764ba2'/%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle cx='50' cy='50' r='45' fill='url(%23g)'/%3E%3Cpath d='M40 30 L40 70 L70 50 Z' fill='white'/%3E%3C/svg%3E">
+    <link rel="stylesheet" href="styles.css?v=11">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+    <!-- PWA / Mobile App Features -->
+    <meta name="theme-color" content="#1a1a2e">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Shaleemo">
+    <link rel="manifest" href="manifest.json">
+</head>
+
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="logo">
+                <svg class="logo-icon" width="32" height="32" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+                        </linearGradient>
+                        <filter id="glow">
+                            <feGaussianBlur stdDeviation="2" result="coloredBlur" />
+                            <feMerge>
+                                <feMergeNode in="coloredBlur" />
+                                <feMergeNode in="SourceGraphic" />
+                            </feMerge>
+                        </filter>
+                    </defs>
+                    <circle class="logo-circle" cx="50" cy="50" r="45" fill="url(#logoGradient)" filter="url(#glow)">
+                        <animate attributeName="r" values="45;47;45" dur="2s" repeatCount="indefinite" />
+                    </circle>
+                    <path class="logo-play" d="M38 28 L38 72 L72 50 Z" fill="white">
+                        <animateTransform attributeName="transform" type="scale" values="1;1.1;1" dur="2s"
+                            repeatCount="indefinite" additive="sum" />
+                    </path>
+                </svg>
+                <span class="logo-text">Shaleemo</span>
+            </div>
+
+            <!-- Enhanced Search -->
+            <div class="search-bar">
+                <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <path d="m21 21-4.35-4.35"></path>
+                </svg>
+                <input type="text" id="searchInput" placeholder="Smart Search...">
+                <button class="clear-search" id="clearSearch" style="display: none;">&times;</button>
+            </div>
+
+            <!-- Sort -->
+            <div class="sort-dropdown">
+                <select id="sortSelect">
+                    <option value="default">Sort by</option>
+                    <option value="name">Name (A-Z)</option>
+                    <option value="year">Year</option>
+                    <option value="category">Category</option>
+                </select>
+            </div>
+
+            <!-- NEW: Favorites Button -->
+            <button class="icon-btn" id="favoritesBtn" title="My Favorites">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path
+                        d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z">
+                    </path>
+                </svg>
+            </button>
+
+            <!-- NEW: Dark Mode Toggle -->
+            <button class="icon-btn" id="darkModeToggle" title="Toggle Dark Mode">
+                <svg class="sun-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2">
+                    <circle cx="12" cy="12" r="5"></circle>
+                    <line x1="12" y1="1" x2="12" y2="3"></line>
+                    <line x1="12" y1="21" x2="12" y2="23"></line>
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                    <line x1="1" y1="12" x2="3" y2="12"></line>
+                    <line x1="21" y1="12" x2="23" y2="12"></line>
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                </svg>
+                <svg class="moon-icon" style="display:none" width="22" height="22" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Filter Section -->
+    <div class="filter-section">
+        <div class="container">
+            <div class="filter-chips" id="filterChips">
+                <button class="chip active" data-category="All">All</button>
+            </div>
+            <div class="filter-controls">
+                <span id="movieCount">0 movies</span>
+
+                <!-- NEW: Action Buttons -->
+                <button class="icon-btn" id="randomMovieBtn" title="Random Movie (I'm Feeling Lucky)">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l5 5M4 4l5 5" />
+                    </svg>
+                </button>
+
+                <button class="icon-btn" id="watchLaterBtn" title="Watch Later List">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                </button>
+
+                <!-- NEW: View Toggle -->
+                <div class="view-toggle">
+                    <button class="view-btn active" data-view="grid" title="Grid View">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <rect x="3" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="14" width="7" height="7"></rect>
+                            <rect x="3" y="14" width="7" height="7"></rect>
+                        </svg>
+                    </button>
+                    <button class="view-btn" data-view="list" title="List View">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <line x1="8" y1="6" x2="21" y2="6"></line>
+                            <line x1="8" y1="12" x2="21" y2="12"></line>
+                            <line x1="8" y1="18" x2="21" y2="18"></line>
+                            <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                            <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                            <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- NEW: Advanced Filters Toggle -->
+                <button class="filter-toggle-btn" id="filterToggle">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+                    </svg>
+                    Filters
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- NEW: Advanced Filters Panel -->
+    <div class="advanced-filters" id="advancedFilters">
+        <div class="container">
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label>Year Range</label>
+                    <div class="range-inputs">
+                        <input type="number" id="yearMin" placeholder="2000" min="1900" max="2025">
+                        <span>to</span>
+                        <input type="number" id="yearMax" placeholder="2025" min="1900" max="2025">
+                    </div>
+                </div>
+                <button class="reset-filters" id="resetFilters">Reset All</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="main">
+        <div class="container">
+            <!--Recently Watched -->
+            <div class="recent-section" id="recentSection" style="display: none;">
+                <h2 class="section-title">Recently Watched</h2>
+                <div class="movies-grid" id="recentGrid"></div>
+            </div>
+
+            <!-- All Movies -->
+            <div class="all-movies-section">
+                <h2 class="section-title">All Movies</h2>
+                <div class="skeleton-grid" id="skeletonGrid">
+                    <div class="skeleton-card"></div>
+                    <div class="skeleton-card"></div>
+                    <div class="skeleton-card"></div>
+                    <div class="skeleton-card"></div>
+                    <div class="skeleton-card"></div>
+                    <div class="skeleton-card"></div>
+                </div>
+                <div class="movies-grid" id="moviesGrid"></div>
+            </div>
+
+            <!-- NEW: Pagination -->
+            <div class="pagination" id="pagination" style="display: none;">
+                <button class="page-btn" id="prevPage" aria-label="Previous">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="15 18 9 12 15 6"></polyline>
+                    </svg>
+                    <span class="btn-text">Previous</span>
+                </button>
+                <div class="page-numbers" id="pageNumbers"></div>
+                <button class="page-btn" id="nextPage" aria-label="Next">
+                    <span class="btn-text">Next</span>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Back to Top -->
+    <button class="back-to-top" id="backToTop">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="18 15 12 9 6 15"></polyline>
+        </svg>
+    </button>
+
+    <!-- Video Player Modal -->
+    <div class="modal" id="videoModal">
+        <div class="modal-backdrop" id="modalBackdrop"></div>
+        <div class="modal-content">
+            <button class="close-btn" id="closeBtn">&times;</button>
+            <div class="video-container" id="videoContainer">
+                <div class="loading">Loading...</div>
+            </div>
+            <div class="video-info">
+                <h2 id="videoTitle">Movie Title</h2>
+                <p id="videoMeta">2024 • Category</p>
+                <div class="video-actions">
+                    <button class="action-btn" id="addToWatched">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                        Mark as Watched
+                    </button>
+                    <!-- NEW: Share Button -->
+                    <button class="action-btn" id="shareMovie">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <circle cx="18" cy="5" r="3"></circle>
+                            <circle cx="6" cy="12" r="3"></circle>
+                            <circle cx="18" cy="19" r="3"></circle>
+                            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+                        </svg>
+                        Share
+                    </button>
+                </div>
+            </div>
+            <div class="recommendations">
+                <h3>More Like This</h3>
+                <div class="rec-grid" id="recGrid"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Keyboard Shortcuts -->
+    <div class="shortcuts-modal" id="shortcutsModal">
+        <div class="shortcuts-content">
+            <h3>Keyboard Shortcuts</h3>
+            <div class="shortcut-list">
+                <div class="shortcut-item"><kbd>/</kbd><span>Focus search</span></div>
+                <div class="shortcut-item"><kbd>Esc</kbd><span>Close player</span></div>
+                <div class="shortcut-item"><kbd>D</kbd><span>Toggle dark mode</span></div>
+                <div class="shortcut-item"><kbd>?</kbd><span>Show shortcuts</span></div>
+            </div>
+            <button class="close-shortcuts" id="closeShortcuts">Close</button>
+        </div>
+    </div>
+
+    <!-- NEW: Toast Notification -->
+    <div class="toast" id="toast"></div>
+
+    <!-- NEW: Context Menu -->
+    <div class="context-menu" id="contextMenu">
+        <button class="context-item" data-action="play">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M8 5v14l11-7z" />
+            </svg>
+            Play Now
+        </button>
+        <button class="context-item" data-action="favorite">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path
+                    d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z">
+                </path>
+            </svg>
+            Add to Favorites
+        </button>
+        <button class="context-item" data-action="watchlater">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+            Watch Later
+        </button>
+        <button class="context-item" data-action="share">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="18" cy="5" r="3"></circle>
+                <circle cx="6" cy="12" r="3"></circle>
+                <circle cx="18" cy="19" r="3"></circle>
+                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+            </svg>
+            Share
+        </button>
+    </div>
+
+    <script src="app.js?v=3"></script>
+    <script>
+        // Start the application
+        document.addEventListener('DOMContentLoaded', () => {
+            App.init();
+        });
+    </script>
+</body>
+
+</html>
