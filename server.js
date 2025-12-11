@@ -103,8 +103,10 @@ app.get('/api/debug', (req, res) => {
     } catch (e) { debugInfo.errorRoot = e.message; }
 
     try {
-        debugInfo.filesPublic = fs.readdirSync(path.join(process.cwd(), 'public'));
-    } catch (e) { debugInfo.errorPublic = e.message; }
+        const scraper = require('./scraper');
+        const cats = scraper.getCategorizedMovies();
+        debugInfo.inMemoryMovieCount = cats && cats.All ? cats.All.length : 0;
+    } catch (e) { debugInfo.errorScraper = e.message; }
 
     try {
         const dbPath = path.join(process.cwd(), 'movies.json');
