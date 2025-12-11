@@ -15,7 +15,8 @@ let isFirstLoad = true;
 
 async function scrapeMovies(forceRefresh = false) {
     // 0. Static File Check (Fastest) - Skip if forceRefresh is true (for generation)
-    const dbPath = path.join(__dirname, 'public', 'movies.json');
+    // Use process.cwd() for Vercel/Serverless compatibility
+    const dbPath = path.join(process.cwd(), 'public', 'movies.json');
     if (!forceRefresh && fs.existsSync(dbPath)) {
         console.log('📂 Loading movies from static DB (Fast)...');
         try {
