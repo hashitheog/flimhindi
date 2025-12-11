@@ -29,6 +29,45 @@ const App = {
         await this.loadMovies();
         this.showSkeletons(false);
         this.updateMobileNav();
+
+        // AUTO-UPDATE: Sync movies every 8 seconds to catch background updates
+        setInterval(() => this.syncMoviesSilent(), 8000);
+    },
+
+    async syncMoviesSilent() {
+        try {
+            const res = await fetch('/api/categories');
+            if (!res.ok) return;
+            const data = await res.json();
+            if (data.success && data.categories.All && data.categories.All.length > this.allMovies.length) {
+                const oldCount = this.allMovies.length;
+                this.allMovies = data.categories.All;
+                const newCount = this.allMovies.length;
+
+                // Process new movies
+                this.allMovies.forEach((m, index) => {
+                    if (m.year) m.year = parseInt(m.year) + 1;
+                    m.title = m.title.trim();
+                    m.showNewBadge = (index % 5 === 0);
+                });
+
+                // Re-sort
+                this.allMovies.sort((a, b) => {
+                    const yearA = a.year || 0;
+                    const yearB = b.year || 0;
+                    if (yearB !== yearA) return yearB - yearA;
+                    return 0;
+                });
+
+                // If user is on "All" category and page 1, refresh grid gracefully
+                if (this.currentCategory === 'All') {
+                    // Update current view logic (keep persistent sort/filter if possible)
+                    this.movies = [...this.allMovies];
+                    this.render();
+                    this.showToast(`⚡ Found ${newCount - oldCount} new movies!`);
+                }
+            }
+        } catch (e) { console.log('Sync skipped'); }
     },
 
     updateMobileNav() {
@@ -46,11 +85,18 @@ const App = {
     // NEW: Load User Preferences from localStorage
     loadPreferences() {
         // Dark mode
+        // Dark mode
+        // Force Light Mode as requested by user
+        localStorage.setItem('shaleemo_theme', 'light');
+        document.body.classList.remove('dark-mode');
+        this.updateDarkModeIcon(false);
+        /* 
         const theme = localStorage.getItem('shaleemo_theme');
         if (theme === 'dark') {
             document.body.classList.add('dark-mode');
             this.updateDarkModeIcon(true);
         }
+        */
 
         // View mode
         this.viewMode = localStorage.getItem('shaleemo_viewMode') || 'grid';

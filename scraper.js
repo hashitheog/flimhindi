@@ -32,8 +32,8 @@ async function scrapeMovies() {
 async function startBackgroundScrapes(startId) {
     console.log('🚀 Triggering PARALLEL background scrapes...');
 
-    // Fanproj Page 3-20
-    const fanprojPromise = scrapeFanproj(3, 20).then(moreMovies => {
+    // Fanproj Page 3-100 (Maximized for "All Movies")
+    const fanprojPromise = scrapeFanproj(3, 100).then(moreMovies => {
         let currentId = startId;
         const currentLinks = new Set(cachedMovies.map(m => m.link));
 
@@ -256,7 +256,7 @@ async function scrapeKhaanFilms(limit = null) {
 }
 
 // ENHANCED Fanproj.net scraper with comprehensive data extraction
-async function scrapeFanproj(startPage = 1, endPage = 20) {
+async function scrapeFanproj(startPage = 1, endPage = 100) {
     if (startPage === 1) console.log('\n🎬 Starting ENHANCED fanproj.net scraper...');
     const allMovies = [];
     const seenTitles = new Set();
@@ -283,85 +283,110 @@ async function scrapeFanproj(startPage = 1, endPage = 20) {
     }
 
     try {
-        for (let page = startPage; page <= maxPages; page++) {
+        // Parallel Scraping: Process pages in batches of 5
+        const BATCH_SIZE = 5;
+        for (let i = startPage; i <= maxPages; i += BATCH_SIZE) {
             if (consecutiveErrors >= 3) break;
-            const url = `https://fanprojnet.com/page/${page}/`;
-            console.log(`📄 Page ${page}...`);
 
-            try {
-                const data = await fetchWithRetry(url);
-                const $ = cheerio.load(data);
-                let pageCount = 0;
+            const batchPromises = [];
+            const endBatch = Math.min(i + BATCH_SIZE - 1, maxPages);
 
-                $('article.item, article.movies, .item, article').each((i, el) => {
-                    const $el = $(el);
-                    const $titleLink = $el.find('h2 a, .data h3 a, h3 a, a.tip, .title a').first();
-                    let title = $titleLink.text().trim() || $el.find('h2, h3, .title').first().text().trim() || $titleLink.attr('title') || '';
-                    title = title.replace(/\s+/g, ' ').trim();
-                    const link = $titleLink.attr('href') || $el.find('a').first().attr('href');
-                    const $img = $el.find('img').first();
-                    let thumbnail = $img.attr('data-original') || $img.attr('data-src') || $img.attr('src');
+            console.log(`⚡ Fetching Pages ${i} to ${endBatch} in parallel...`);
 
-                    if (thumbnail) {
-                        if (thumbnail.startsWith('//')) thumbnail = 'https:' + thumbnail;
-                        else if (thumbnail.startsWith('/')) thumbnail = 'https://fanprojnet.com' + thumbnail;
-                        thumbnail = thumbnail.replace('-150x150', '').replace('-300x300', '').replace('w185', 'w500');
-                    }
+            for (let page = i; page <= endBatch; page++) {
+                const url = `https://fanprojnet.com/page/${page}/`;
+                const pagePromise = (async () => {
+                    try {
+                        const data = await fetchWithRetry(url);
+                        const $ = cheerio.load(data);
+                        let pageCount = 0;
+                        const pageMovies = [];
 
-                    // Year extraction
-                    let year = 2024;
-                    const yearText = $el.find('.year').text() || $el.find('.date').text() || title;
-                    const yearMatch = yearText.match(/20\d{2}|19\d{2}/);
-                    if (yearMatch) year = parseInt(yearMatch[0]);
+                        $('article.item, article.movies, .item, article').each((i, el) => {
+                            const $el = $(el);
+                            const $titleLink = $el.find('h2 a, .data h3 a, h3 a, a.tip, .title a').first();
+                            let title = $titleLink.text().trim() || $el.find('h2, h3, .title').first().text().trim() || $titleLink.attr('title') || '';
+                            title = title.replace(/\s+/g, ' ').trim();
+                            const link = $titleLink.attr('href') || $el.find('a').first().attr('href');
+                            const $img = $el.find('img').first();
+                            let thumbnail = $img.attr('data-original') || $img.attr('data-src') || $img.attr('src');
 
-                    // Extract Genres
-                    const genres = [];
-                    $el.find('.genres a, .sgeneros a, .category a, a[rel="category tag"], [class*="genre"] a').each((j, catEl) => {
-                        const genre = $(catEl).text().trim();
-                        if (genre && !genres.includes(genre)) genres.push(genre);
-                    });
+                            if (thumbnail) {
+                                if (thumbnail.startsWith('//')) thumbnail = 'https:' + thumbnail;
+                                else if (thumbnail.startsWith('/')) thumbnail = 'https://fanprojnet.com' + thumbnail;
+                                thumbnail = thumbnail.replace('-150x150', '').replace('-300x300', '').replace('w185', 'w500');
+                            }
 
-                    // Enhanced Category Logic
-                    let category = 'Movies';
-                    if (title.toLowerCase().includes('tv') || link?.includes('tvshows')) category = 'TV Series';
-                    else if (genres.length > 0) {
-                        const catText = genres.join(' ').toLowerCase();
-                        if (catText.includes('drama')) category = 'Drama';
-                        else if (catText.includes('action')) category = 'Action';
-                        else if (catText.includes('horror') || catText.includes('scary')) category = 'Horror';
-                        else if (catText.includes('comedy') || catText.includes('funny')) category = 'Comedy';
-                        else if (catText.includes('romance') || catText.includes('love')) category = 'Romance';
-                        else if (catText.includes('thriller') || catText.includes('crime') || catText.includes('mystery')) category = 'Thriller';
-                        else if (catText.includes('adventure')) category = 'Adventure';
-                        else if (catText.includes('sci-fi') || catText.includes('fantasy')) category = 'Sci-Fi';
-                        else if (catText.includes('family') || catText.includes('animation') || catText.includes('cartoon')) category = 'Family';
-                    }
+                            // Year extraction
+                            let year = 2024;
+                            const yearText = $el.find('.year').text() || $el.find('.date').text() || title;
+                            const yearMatch = yearText.match(/20\d{2}|19\d{2}/);
+                            if (yearMatch) year = parseInt(yearMatch[0]);
 
-                    if (title && link && link.includes('fanproj') && !seenTitles.has(title)) {
-                        seenTitles.add(title);
-                        allMovies.push({
-                            title, link,
-                            thumbnail: thumbnail || '',
-                            year, category,
-                            genres: genres,
-                            rating: 4.5, imdbRating: null,
-                            description: '', quality: 'HD', duration: null,
-                            isNew: year >= 2025,
-                            source: 'fanproj.net'
+                            // Extract Genres
+                            const genres = [];
+                            $el.find('.genres a, .sgeneros a, .category a, a[rel="category tag"], [class*="genre"] a').each((j, catEl) => {
+                                const genre = $(catEl).text().trim();
+                                if (genre && !genres.includes(genre)) genres.push(genre);
+                            });
+
+                            // Enhanced Category Logic
+                            let category = 'Movies';
+                            if (title.toLowerCase().includes('tv') || link?.includes('tvshows')) category = 'TV Series';
+                            else if (genres.length > 0) {
+                                const catText = genres.join(' ').toLowerCase();
+                                if (catText.includes('drama')) category = 'Drama';
+                                else if (catText.includes('action')) category = 'Action';
+                                else if (catText.includes('horror') || catText.includes('scary')) category = 'Horror';
+                                else if (catText.includes('comedy') || catText.includes('funny')) category = 'Comedy';
+                                else if (catText.includes('romance') || catText.includes('love')) category = 'Romance';
+                                else if (catText.includes('thriller') || catText.includes('crime') || catText.includes('mystery')) category = 'Thriller';
+                                else if (catText.includes('adventure')) category = 'Adventure';
+                                else if (catText.includes('sci-fi') || catText.includes('fantasy')) category = 'Sci-Fi';
+                                else if (catText.includes('family') || catText.includes('animation') || catText.includes('cartoon')) category = 'Family';
+                            }
+
+                            if (title && link) {
+                                pageMovies.push({
+                                    title, link,
+                                    thumbnail: thumbnail || '',
+                                    year, category,
+                                    genres: genres,
+                                    rating: 4.5, imdbRating: null,
+                                    description: '', quality: 'HD', duration: null,
+                                    isNew: year >= 2025,
+                                    source: 'fanproj.net'
+                                });
+                            }
                         });
-                        pageCount++;
+                        return pageMovies;
+                    } catch (e) {
+                        console.error(`Error page ${page}:`, e.message);
+                        return [];
                     }
-                });
-
-                console.log(`  ✓ Found ${pageCount} movies`);
-                consecutiveErrors = 0;
-                await new Promise(resolve => setTimeout(resolve, 800));
-
-            } catch (error) {
-                console.error(`  ❌ Page ${page} failed: ${error.message}`);
-                consecutiveErrors++;
+                })();
+                batchPromises.push(pagePromise);
             }
+
+            const batchResults = await Promise.all(batchPromises);
+
+            // Flatten and add to allMovies
+            let newMoviesCount = 0;
+            batchResults.flat().forEach(m => {
+                if (!seenTitles.has(m.title)) {
+                    seenTitles.add(m.title);
+                    allMovies.push(m);
+                    newMoviesCount++;
+                }
+            });
+
+            console.log(`  ✓ Batch complete. Added ${newMoviesCount} new movies. Total: ${allMovies.length}`);
+            if (newMoviesCount === 0 && allMovies.length > 50) consecutiveErrors++; // Soft error if empty pages
+            else consecutiveErrors = 0;
+
+            await new Promise(resolve => setTimeout(resolve, 500)); // Brief pause between batches
         }
+
         return allMovies;
     } catch (error) {
         console.error('❌ Fatal scraping error:', error.message);
@@ -380,17 +405,71 @@ async function getCategorizedMovies() {
 }
 
 async function scrapeMovieVideo(movieUrl) {
-    // ... (Keep existing implementation logic, simplified here for brevity but assuming typical wrapper logic)
-    // Actually I should include the basic logic to be safe since I'm overwriting.
-    // I'll assume valid logic is needed.
+    console.log(`🎬 Scraping video for: ${movieUrl}`);
     try {
-        const { data } = await axios.get(movieUrl, { headers: { 'User-Agent': 'Mozilla/5.0' }, timeout: 15000 });
+        const { data } = await axios.get(movieUrl, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            },
+            timeout: 15000
+        });
         const $ = cheerio.load(data);
-        const iframeSrc = $('iframe').attr('src');
-        // Simple extraction for now since direct lookup usually happens via Khaan scraper pre-population
-        if (iframeSrc) return { success: true, videoUrl: iframeSrc };
-        return { success: false, error: 'No video found' };
-    } catch (e) { return { success: false, error: e.message }; }
+
+        // Strategy 1: Look for specific embed buttons/data
+        let videoUrl = null;
+        const options = [];
+
+        // Collect all potential sources
+        $('.DagPlayOpt, .play-btn, .dooplay_player_option').each((j, el) => {
+            const embed = $(el).attr('data-embed') || $(el).attr('data-src');
+            if (embed) options.push(embed);
+        });
+
+        // Search in collected options
+        // Priority 1: Direct .mp4 or specific fast servers
+        for (const opt of options) {
+            if (opt.includes('.mp4')) {
+                videoUrl = opt;
+                break;
+            }
+            if (opt.includes('drive.google.com') || opt.includes('ok.ru') || opt.includes('mediafire')) {
+                videoUrl = opt;
+                break; // Good enough
+            }
+        }
+
+        // Strategy 2: Iframes (Standard)
+        if (!videoUrl) {
+            $('iframe').each((i, el) => {
+                const src = $(el).attr('src');
+                if (src && (src.includes('video') || src.includes('embed') || src.includes('player'))) {
+                    // Filter out ads/trackers if known, otherwise take best guess
+                    if (!src.includes('facebook') && !src.includes('twitter')) {
+                        videoUrl = src;
+                        return false; // Break
+                    }
+                }
+            });
+        }
+
+        // Strategy 3: Fanproj specific structure
+        if (!videoUrl) {
+            const customFrame = $('#pembed iframe').attr('src');
+            if (customFrame) videoUrl = customFrame;
+        }
+
+        if (videoUrl) {
+            console.log(`  ✅ Found video: ${videoUrl}`);
+            return { success: true, videoUrl: videoUrl };
+        }
+
+        console.log('  ❌ No video found');
+        return { success: false, error: 'No video sources found' };
+
+    } catch (e) {
+        console.error(`  ❌ search error: ${e.message}`);
+        return { success: false, error: e.message };
+    }
 }
 
 module.exports = {
@@ -399,9 +478,4 @@ module.exports = {
     getCategorizedMovies: () => ({ 'All': cachedMovies }) // Helper
 };
 
-// AUTO-START: Start scraping as soon as the server runs this file
-console.log('🔄 Server starting: Initiating background scrape immediately...');
-if (isFirstLoad) {
-    // Start with 1 so it loads first 2 pages + background
-    startBackgroundScrapes(1);
-}
+// Auto-start logic removed to be controlled by server.js
