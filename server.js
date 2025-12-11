@@ -84,9 +84,42 @@ app.post('/api/video', async (req, res) => {
     }
 });
 
+// Debug endpoint to check Vercel environment
+app.get('/api/debug', (req, res) => {
+    const fs = require('fs');
+
+    const debugInfo = {
+        cwd: process.cwd(),
+        dirname: __dirname,
+        filesRoot: [],
+        filesPublic: [],
+        moviesJsonExists: false,
+        moviesJsonSize: 0,
+        env: process.env.NODE_ENV
+    };
+
+    try {
+        debugInfo.filesRoot = fs.readdirSync(process.cwd());
+    } catch (e) { debugInfo.errorRoot = e.message; }
+
+    try {
+        debugInfo.filesPublic = fs.readdirSync(path.join(process.cwd(), 'public'));
+    } catch (e) { debugInfo.errorPublic = e.message; }
+
+    try {
+        const dbPath = path.join(process.cwd(), 'movies.json');
+        if (fs.existsSync(dbPath)) {
+            debugInfo.moviesJsonExists = true;
+            debugInfo.moviesJsonSize = fs.statSync(dbPath).size;
+        }
+    } catch (e) { debugInfo.errorDb = e.message; }
+
+    res.json(debugInfo);
+});
+
+// Proxy endpoint for video playback (resolves CORS issues)
 /**
  * GET /api/proxy
- * Proxy endpoint to bypass X-Frame-Options
  * Usage: /api/proxy?url=https://example.com
  */
 app.get('/api/proxy', async (req, res) => {
