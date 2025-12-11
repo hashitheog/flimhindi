@@ -14,17 +14,29 @@ let cachedMovies = [];
 let isFirstLoad = true;
 
 async function scrapeMovies(forceRefresh = false) {
-    // 0. Static File Check (Fastest) - Skip if forceRefresh is true (for generation)
-    // Use process.cwd() for Vercel/Serverless compatibility
-    const dbPath = path.join(process.cwd(), 'public', 'movies.json');
-    if (!forceRefresh && fs.existsSync(dbPath)) {
-        console.log('📂 Loading movies from static DB (Fast)...');
+    // 0. Static File Check (Fastest) - Use require to force bundling
+    if (!forceRefresh) {
         try {
-            const data = fs.readFileSync(dbPath, 'utf8');
-            cachedMovies = JSON.parse(data);
-            return cachedMovies;
+            console.log('📂 Attempting to require static DB...');
+            // This forces the bundler (Webpack/Vercel) to include the file
+            const staticData = require('./public/movies.json');
+            if (staticData && staticData.length > 0) {
+                console.log('✅ Loaded movies from static DB via require!');
+                cachedMovies = staticData;
+                return cachedMovies;
+            }
         } catch (e) {
-            console.error('Error reading static DB:', e.message);
+            console.log('Static DB require failed (expected in dev if generating):', e.message);
+
+            // Fallback to FS for local dev if require fails (sometimes happens with dynamic paths)
+            try {
+                const dbPath = path.join(process.cwd(), 'public', 'movies.json');
+                if (fs.existsSync(dbPath)) {
+                    const data = fs.readFileSync(dbPath, 'utf8');
+                    cachedMovies = JSON.parse(data);
+                    return cachedMovies;
+                }
+            } catch (err) { console.log('FS fallback failed too'); }
         }
     }
 
