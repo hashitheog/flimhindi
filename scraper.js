@@ -1,5 +1,7 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
+const fs = require('fs');
+const path = require('path');
 
 // Cache
 let moviesCache = null;
@@ -11,9 +13,22 @@ const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes cache
 let cachedMovies = [];
 let isFirstLoad = true;
 
-async function scrapeMovies() {
-    // If we have data, return it immediately
-    if (cachedMovies.length > 0) {
+async function scrapeMovies(forceRefresh = false) {
+    // 0. Static File Check (Fastest) - Skip if forceRefresh is true (for generation)
+    const dbPath = path.join(__dirname, 'public', 'movies.json');
+    if (!forceRefresh && fs.existsSync(dbPath)) {
+        console.log('📂 Loading movies from static DB (Fast)...');
+        try {
+            const data = fs.readFileSync(dbPath, 'utf8');
+            cachedMovies = JSON.parse(data);
+            return cachedMovies;
+        } catch (e) {
+            console.error('Error reading static DB:', e.message);
+        }
+    }
+
+    // If we have data in memory and not forcing refresh, return it
+    if (cachedMovies.length > 0 && !forceRefresh) {
         return cachedMovies;
     }
 
@@ -49,8 +64,9 @@ async function startBackgroundScrapes(startId) {
     // Start KhaanFilms concurrently
     const khaanPromise = startKhaanFilmsBackgroundScrape();
 
-    Promise.allSettled([fanprojPromise, khaanPromise]).then(() => {
+    return Promise.allSettled([fanprojPromise, khaanPromise]).then(() => {
         console.log(`🏁 ALL SCRAPES COMPLETE. Final Total: ${cachedMovies.length}`);
+        return cachedMovies;
     });
 }
 
@@ -475,6 +491,7 @@ async function scrapeMovieVideo(movieUrl) {
 module.exports = {
     scrapeMovies,
     scrapeMovieVideo,
+    startBackgroundScrapes,
     getCategorizedMovies: () => ({ 'All': cachedMovies }) // Helper
 };
 
