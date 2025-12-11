@@ -13,48 +13,52 @@ const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes cache
 let cachedMovies = [];
 let isFirstLoad = true;
 
-async function scrapeMovies(forceRefresh = false) {
-    // 0. Static File Check (Fastest) - Use require to force bundling
-    if (!forceRefresh) {
-        try {
-            console.log('📂 Attempting to require static DB...');
-            // Load from ROOT to ensure Vercel bundles it as a dependency
-            const staticData = require('./movies.json');
-            if (staticData && staticData.length > 0) {
-                console.log('✅ Loaded movies from static DB via require!');
-                cachedMovies = staticData;
-                return cachedMovies;
-            }
-        } catch (e) {
-            console.log('Static DB require failed:', e.message);
-
-            // Fallback to FS for local dev if require fails (sometimes happens with dynamic paths)
-            try {
-                const dbPath = path.join(process.cwd(), 'public', 'movies.json');
-                if (fs.existsSync(dbPath)) {
-                    const data = fs.readFileSync(dbPath, 'utf8');
-                    cachedMovies = JSON.parse(data);
-                    return cachedMovies;
-                }
-            } catch (err) { console.log('FS fallback failed too'); }
-        }
+// IMMEDIATE LOAD: Try to load static DB synchronously on module load
+try {
+    console.log('📂 Module Load: Require static DB...');
+    const staticData = require('./movies.json');
+    if (staticData && staticData.length > 0) {
+        console.log(`✅ Pre-loaded ${staticData.length} movies from static DB!`);
+        cachedMovies = staticData;
+        isFirstLoad = false; // Skip initial scrape if we have data
     }
+} catch (e) {
+    console.log('Info: No static movies.json found (normal in dev/generation).');
+}
 
-    // If we have data in memory and not forcing refresh, return it
+async function scrapeMovies(forceRefresh = false) {
+    // If we have data and not forcing refresh, return it immediately
     if (cachedMovies.length > 0 && !forceRefresh) {
         return cachedMovies;
     }
 
-    console.log('Cache empty, starting scrape...');
+    // Fallback to FS for local dev if require fails (sometimes happens with dynamic paths)
+    try {
+        const dbPath = path.join(process.cwd(), 'public', 'movies.json');
+        if (fs.existsSync(dbPath)) {
+            const data = fs.readFileSync(dbPath, 'utf8');
+            cachedMovies = JSON.parse(data);
+            return cachedMovies;
+        }
+    } catch (err) { console.log('FS fallback failed too'); }
+}
+    }
 
-    // 1. Scrape Fanproj (Fast - First 2 pages)
-    const fanprojMovies = await scrapeFanproj(1, 2);
-    cachedMovies = fanprojMovies.map((m, i) => ({ ...m, id: i + 1 }));
-
-    // 2. Start Rest of Fanproj & KhaanFilms in BACKGROUND
-    startBackgroundScrapes(cachedMovies.length + 1);
-
+// If we have data in memory and not forcing refresh, return it
+if (cachedMovies.length > 0 && !forceRefresh) {
     return cachedMovies;
+}
+
+console.log('Cache empty, starting scrape...');
+
+// 1. Scrape Fanproj (Fast - First 2 pages)
+const fanprojMovies = await scrapeFanproj(1, 2);
+cachedMovies = fanprojMovies.map((m, i) => ({ ...m, id: i + 1 }));
+
+// 2. Start Rest of Fanproj & KhaanFilms in BACKGROUND
+startBackgroundScrapes(cachedMovies.length + 1);
+
+return cachedMovies;
 }
 
 async function startBackgroundScrapes(startId) {
