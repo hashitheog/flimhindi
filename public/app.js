@@ -36,7 +36,7 @@ const App = {
 
     async syncMoviesSilent() {
         try {
-            const res = await fetch('/api/categories');
+            const res = await fetch(`/api/categories?t=${Date.now()}`);
             if (!res.ok) return;
             const data = await res.json();
             if (data.success && data.categories.All && data.categories.All.length > this.allMovies.length) {
@@ -470,7 +470,7 @@ const App = {
             console.log('Fetching movies...');
             const grid = document.getElementById('moviesGrid');
 
-            const res = await fetch('/api/categories');
+            const res = await fetch(`/api/categories?t=${Date.now()}`);
             if (!res.ok) throw new Error(`HTTP Error: ${res.status} `);
 
             const data = await res.json();
