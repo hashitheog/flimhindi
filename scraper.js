@@ -41,24 +41,17 @@ async function scrapeMovies(forceRefresh = false) {
             return cachedMovies;
         }
     } catch (err) { console.log('FS fallback failed too'); }
-}
-    }
 
-// If we have data in memory and not forcing refresh, return it
-if (cachedMovies.length > 0 && !forceRefresh) {
+    console.log('Cache empty, starting scrape...');
+
+    // 1. Scrape Fanproj (Fast - First 2 pages)
+    const fanprojMovies = await scrapeFanproj(1, 2);
+    cachedMovies = fanprojMovies.map((m, i) => ({ ...m, id: i + 1 }));
+
+    // 2. Start Rest of Fanproj & KhaanFilms in BACKGROUND
+    startBackgroundScrapes(cachedMovies.length + 1);
+
     return cachedMovies;
-}
-
-console.log('Cache empty, starting scrape...');
-
-// 1. Scrape Fanproj (Fast - First 2 pages)
-const fanprojMovies = await scrapeFanproj(1, 2);
-cachedMovies = fanprojMovies.map((m, i) => ({ ...m, id: i + 1 }));
-
-// 2. Start Rest of Fanproj & KhaanFilms in BACKGROUND
-startBackgroundScrapes(cachedMovies.length + 1);
-
-return cachedMovies;
 }
 
 async function startBackgroundScrapes(startId) {
