@@ -22,24 +22,9 @@ const App = {
     contextMenuTarget: null,
 
     async init() {
-        // DEBUG OVERLAY
-        const debugDiv = document.createElement('div');
-        debugDiv.id = 'debug-overlay';
-        debugDiv.style.cssText = 'position:fixed;bottom:0;left:0;right:0;height:150px;background:rgba(0,0,0,0.8);color:#0f0;overflow:auto;z-index:9999;font-family:monospace;font-size:12px;padding:10px;pointer-events:none;';
-        document.body.appendChild(debugDiv);
 
-        const oldLog = console.log;
-        console.log = (...args) => {
-            oldLog.apply(console, args);
-            debugDiv.innerHTML += `<div>${args.join(' ')}</div>`;
-            debugDiv.scrollTop = debugDiv.scrollHeight;
-        };
-        const oldErr = console.error;
-        console.error = (...args) => {
-            oldErr.apply(console, args);
-            debugDiv.innerHTML += `<div style="color:red">${args.join(' ')}</div>`;
-            debugDiv.scrollTop = debugDiv.scrollHeight;
-        };
+
+
 
         console.log('🎬 App Initializing...');
         console.log('🎬 Loading Shaleemo with 10 advanced features...');
